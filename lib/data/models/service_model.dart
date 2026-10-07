@@ -52,6 +52,7 @@ class CustomerAddress {
   final double latitude;
   final double longitude;
   final bool isDefault;
+  final double? accuracyMeters;
 
   const CustomerAddress({
     required this.id,
@@ -60,5 +61,6 @@ class CustomerAddress {
     required this.latitude,
     required this.longitude,
     this.isDefault = false,
+    this.accuracyMeters,
   });
 }

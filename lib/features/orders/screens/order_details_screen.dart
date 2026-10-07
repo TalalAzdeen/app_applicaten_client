@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
 import '../../chat/screens/order_chat_screen.dart';
+import '../../payments/screens/checkout_screen.dart';
+import '../../auth/services/auth_service.dart';
+import '../../location/screens/location_picker_screen.dart';
+import 'package:latlong2/latlong.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final OrderModel order;
@@ -88,7 +93,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     });
     widget.onOrderUpdated(currentOrder);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم قبول عرض السعر بنجاح وتأكيد الاتفاقية', style: TextStyle(fontSize: 11))),
+      const SnackBar(content: AppText('تم قبول عرض السعر بنجاح وتأكيد الاتفاقية', style: TextStyle(fontSize: 14))),
     );
   }
 
@@ -121,7 +126,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             });
             widget.onOrderUpdated(currentOrder);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('شكراً لك! تم تسليم تقييمك بنجاح وقيد ضمان الخدمة.', style: TextStyle(fontSize: 11))),
+              const SnackBar(content: AppText('تم حفظ تقييمك محليًا.', style: TextStyle(fontSize: 14))),
             );
           },
         );
@@ -129,87 +134,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  void _processPayment() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.payment, size: 36, color: AppTheme.primaryTeal),
-              const SizedBox(height: 8),
-              Text(
-                'سداد المكون المالي للطلب ${currentOrder.referenceNumber}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'المبلغ الإجمالي المعتمد: ${currentOrder.finalPrice ?? currentOrder.currentQuote?.totalAmount ?? 150} ر.س',
-                style: const TextStyle(fontSize: 15, color: AppTheme.primaryTeal, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.credit_card, size: 20, color: Colors.blue),
-                title: const Text('بطاقة مدى / ائتمان', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () => _finishPayment(ctx),
-              ),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.account_balance_wallet, size: 20, color: Colors.green),
-                title: const Text('المحفظة الإلكترونية (كاش باك)', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () => _finishPayment(ctx),
-              ),
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.money, size: 20, color: Colors.orange),
-                title: const Text('دفع نقداً للفني', style: TextStyle(fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, size: 18),
-                onTap: () => _finishPayment(ctx),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _finishPayment(BuildContext modalCtx) {
-    Navigator.pop(modalCtx);
-    setState(() {
-      currentOrder = OrderModel(
-        id: currentOrder.id,
-        referenceNumber: currentOrder.referenceNumber,
-        service: currentOrder.service,
-        address: currentOrder.address,
-        description: currentOrder.description,
-        status: OrderStatus.completed,
-        createdAt: currentOrder.createdAt,
-        scheduledFor: currentOrder.scheduledFor,
-        organizationName: currentOrder.organizationName,
-        technicianName: currentOrder.technicianName,
-        technicianPhone: currentOrder.technicianPhone,
-        currentQuote: currentOrder.currentQuote,
-        isPaid: true,
-        finalPrice: currentOrder.finalPrice ?? 150.0,
-        rating: currentOrder.rating,
-        reviewComment: currentOrder.reviewComment,
-        hasWarranty: true,
-      );
-    });
+  Future<void> _processPayment() async {
+    final paid = await Navigator.push<bool>(context, MaterialPageRoute(
+      builder: (_) => CheckoutScreen(orderId: currentOrder.id),
+    ));
+    if (!mounted || paid != true) return;
+    setState(() => currentOrder = currentOrder.copyWith(isPaid: true));
     widget.onOrderUpdated(currentOrder);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم الدفع وإصدار الإيصال بنجاح. تم تفعيل الكاش باك والضمان!', style: TextStyle(fontSize: 11)),
-        backgroundColor: Colors.green,
-      ),
+      const SnackBar(content: AppText('أكد الخادم نجاح الدفع.')),
     );
   }
 
@@ -217,7 +150,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('تفاصيل الطلب ${currentOrder.referenceNumber}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        title: AppText('تفاصيل الطلب ${currentOrder.referenceNumber}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
@@ -252,7 +185,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             const SizedBox(height: 16),
 
             // Demo status simulation toolbar
-            _buildSimulationToolbar(),
+            if (!AuthService.instance.authenticated) _buildSimulationToolbar(),
           ],
         ),
       ),
@@ -317,11 +250,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('الحالة الحالية', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                const AppText('الحالة الحالية', style: TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 1),
-                Text(
+                AppText(
                   statusText,
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: statusColor),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: statusColor),
                 ),
               ],
             ),
@@ -331,76 +264,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  Widget _buildLiveTrackingPanel() {
-    return Card(
-      elevation: 1,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topRight,
-            end: Alignment.bottomLeft,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Row(
-                  children: [
-                    Icon(Icons.near_me, color: Colors.amber, size: 16),
-                    SizedBox(width: 6),
-                    Text('التتبع الحي لموقع الفني', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  ],
-                ),
-                Chip(
-                  label: Text('مباشر Live', style: TextStyle(color: Colors.white, fontSize: 9)),
-                  backgroundColor: Colors.red,
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Container(
-              height: 90,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white12,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Stack(
-                children: [
-                  const Center(
-                    child: Text(
-                      '🗺️ خريطة التتبع المباشر (Maps SDK)\nالفني يبعد 1.2 كم عن موقعك',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 11),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 6,
-                    left: 6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
-                      child: const Text('الوقت التقديري للوصول: 8 دقائق', style: TextStyle(color: Colors.white, fontSize: 9.5)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildLiveTrackingPanel() => Card(child: Padding(
+    padding: const EdgeInsets.all(16), child: Column(children: [
+      const AppText('تتبع الفني غير متصل بعد.'),
+      TextButton.icon(onPressed: () => Navigator.push<SelectedLocation>(context, MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(readOnly: true, initialPosition: LatLng(
+          currentOrder.address.latitude, currentOrder.address.longitude)),
+      )), icon: const Icon(Icons.map_outlined), label: const AppText('عرض موقع الخدمة')),
+    ]),
+  ));
 
   Widget _buildTimelineSection() {
     final statuses = [
@@ -422,7 +294,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('مخطط متابعة الطلب (Timeline)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const AppText('مخطط متابعة الطلب (Timeline)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 12),
             Row(
               children: List.generate(statuses.length, (index) {
@@ -480,13 +352,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  AppText(
                     currentOrder.technicianName ?? 'الفني المكلف',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  Text(
+                  AppText(
                     currentOrder.organizationName ?? 'المؤسسة المنفذة',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
               ),
@@ -528,9 +400,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('عرض السعر المقدم (Quote)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const AppText('عرض السعر المقدم (Quote)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 Chip(
-                  label: Text(quote.isAccepted ? 'تم القبول' : 'قيد الانتظار', style: const TextStyle(fontSize: 10)),
+                  label: AppText(quote.isAccepted ? 'تم القبول' : 'قيد الانتظار', style: const TextStyle(fontSize: 12)),
                   backgroundColor: quote.isAccepted ? Colors.green[100] : Colors.orange[100],
                   visualDensity: VisualDensity.compact,
                 ),
@@ -540,32 +412,32 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('أجور أيدي العاملين:', style: TextStyle(fontSize: 11)),
-                Text('${quote.laborFee.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 11)),
+                const AppText('أجور أيدي العاملين:', style: TextStyle(fontSize: 14)),
+                AppText('${quote.laborFee.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 14)),
               ],
             ),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('قطع الغيار والمواد:', style: TextStyle(fontSize: 11)),
-                Text('${quote.sparePartsFee.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 11)),
+                const AppText('قطع الغيار والمواد:', style: TextStyle(fontSize: 14)),
+                AppText('${quote.sparePartsFee.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 14)),
               ],
             ),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('ضريبة القيمة المضافة (15%):', style: TextStyle(fontSize: 11)),
-                Text('${quote.taxAmount.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 11)),
+                const AppText('ضريبة القيمة المضافة (15%):', style: TextStyle(fontSize: 14)),
+                AppText('${quote.taxAmount.toStringAsFixed(2)} ر.س', style: const TextStyle(fontSize: 14)),
               ],
             ),
             const Divider(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('الإجمالي الشامل:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                Text(
+                const AppText('الإجمالي الشامل:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                AppText(
                   '${quote.totalAmount.toStringAsFixed(2)} ر.س',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryTeal),
                 ),
@@ -580,10 +452,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                       style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تم رفض عرض السعر وإرجاع الطلب للبحث', style: TextStyle(fontSize: 11))),
+                          const SnackBar(content: AppText('تم رفض عرض السعر وإرجاع الطلب للبحث', style: TextStyle(fontSize: 14))),
                         );
                       },
-                      child: const Text('رفض العرض', style: TextStyle(fontSize: 11)),
+                      child: const AppText('رفض العرض', style: TextStyle(fontSize: 14)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -594,7 +466,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                         visualDensity: VisualDensity.compact,
                       ),
                       onPressed: _acceptQuote,
-                      child: const Text('قبول عرض السعر', style: TextStyle(color: Colors.white, fontSize: 11)),
+                      child: const AppText('قبول عرض السعر', style: TextStyle(color: Colors.white, fontSize: 14)),
                     ),
                   ),
                 ],
@@ -613,15 +485,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('تفاصيل الخدمة والموقع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            const AppText('تفاصيل الخدمة والموقع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const Divider(height: 14),
-            Text('الخدمة: ${currentOrder.service.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+            AppText('الخدمة: ${currentOrder.service.name}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(height: 4),
-            Text('الوصف: ${currentOrder.description}', style: const TextStyle(fontSize: 11)),
+            AppText('الوصف: ${currentOrder.description}', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 4),
-            Text('العنوان: ${currentOrder.address.label} - ${currentOrder.address.fullAddress}', style: const TextStyle(fontSize: 11)),
+            AppText('العنوان: ${currentOrder.address.label} - ${currentOrder.address.fullAddress}', style: const TextStyle(fontSize: 14)),
             const SizedBox(height: 4),
-            Text('تاريخ الطلب: ${currentOrder.createdAt.toString().split('.')[0]}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            AppText('تاريخ الطلب: ${currentOrder.createdAt.toString().split('.')[0]}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
           ],
         ),
       ),
@@ -653,7 +525,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 );
               },
               icon: const Icon(Icons.chat, size: 16),
-              label: const Text('محادثة الفني والمؤسسة', style: TextStyle(fontSize: 11.5)),
+              label: const AppText('محادثة الفني والمؤسسة', style: TextStyle(fontSize: 14)),
             ),
           ),
         const SizedBox(height: 8),
@@ -668,7 +540,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               ),
               onPressed: _processPayment,
               icon: const Icon(Icons.payment, size: 16),
-              label: const Text('الدفع الإلكتروني وإصدار الإيصال', style: TextStyle(fontSize: 11.5)),
+              label: const AppText('الدفع الإلكتروني وإصدار الإيصال', style: TextStyle(fontSize: 14)),
             ),
           ),
         const SizedBox(height: 8),
@@ -679,7 +551,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             child: OutlinedButton.icon(
               onPressed: _showRatingDialog,
               icon: const Icon(Icons.star_rate, color: Colors.amber, size: 16),
-              label: const Text('إضافة تقييم للخدمة', style: TextStyle(fontSize: 11.5)),
+              label: const AppText('إضافة تقييم للخدمة', style: TextStyle(fontSize: 14)),
             ),
           ),
       ],
@@ -696,7 +568,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('⚙️ شريط محاكاة رحلة الطلب للتحقق من النظام:', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold)),
+          const AppText('⚙️ شريط محاكاة رحلة الطلب للتحقق من النظام:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Wrap(
             spacing: 6,
@@ -725,7 +597,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: Colors.grey[400]!),
         ),
-        child: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
+        child: AppText(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -747,11 +619,11 @@ class _RatingDialogState extends State<_RatingDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('تقييم الخدمة والفني', textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
+      title: const AppText('تقييم الخدمة والفني', textAlign: TextAlign.center, style: TextStyle(fontSize: 14)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('كيف كانت تجربتك مع تنفيذ الطلب؟', style: TextStyle(fontSize: 11)),
+          const AppText('كيف كانت تجربتك مع تنفيذ الطلب؟', style: TextStyle(fontSize: 14)),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -773,9 +645,9 @@ class _RatingDialogState extends State<_RatingDialog> {
           const SizedBox(height: 10),
           TextField(
             controller: reviewController,
-            style: const TextStyle(fontSize: 11),
-            decoration: const InputDecoration(
-              hintText: 'اكتب ملاحظاتك وتقييمك للفني والمؤسسة...',
+            style: const TextStyle(fontSize: 14),
+            decoration: InputDecoration(
+              hintText: translate(context, 'اكتب ملاحظاتك وتقييمك للفني والمؤسسة...'),
             ),
             maxLines: 2,
           ),
@@ -784,7 +656,7 @@ class _RatingDialogState extends State<_RatingDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('إلغاء', style: TextStyle(fontSize: 11)),
+          child: const AppText('إلغاء', style: TextStyle(fontSize: 14)),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal),
@@ -792,7 +664,7 @@ class _RatingDialogState extends State<_RatingDialog> {
             widget.onRatingSubmitted(selectedRating, reviewController.text.trim());
             Navigator.pop(context);
           },
-          child: const Text('إرسال التقييم', style: TextStyle(color: Colors.white, fontSize: 11)),
+          child: const AppText('إرسال التقييم', style: TextStyle(color: Colors.white, fontSize: 14)),
         ),
       ],
     );

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/repositories/app_repository.dart';
 
@@ -52,13 +53,13 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
       if (!mounted) return;
       if (AppRepository.currentUser != null) {
         AppRepository.currentUser = AppRepository.currentUser!.copyWith(
-          isNafathVerified: true,
+          isNafathVerified: false,
         );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ تم التوثيق بنجاح عبر نفاذ (النفاذ الوطني الموحد)', style: TextStyle(fontSize: 12)),
+          content: AppText('محاكاة نفاذ فقط • لم يحدث توثيق حقيقي', style: TextStyle(fontSize: 14)),
           backgroundColor: AppTheme.nafathGreen,
         ),
       );
@@ -79,7 +80,7 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('التحقق عبر نفاذ (Nafath)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        title: const AppText('التحقق عبر نفاذ (Nafath)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, size: 20),
           onPressed: widget.onCancel,
@@ -114,7 +115,7 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
-                        Text(
+                        AppText(
                           'النفاذ الوطني الموحد',
                           style: TextStyle(
                             color: Colors.white,
@@ -137,13 +138,13 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            AppText(
                               user?.fullName ?? 'عبدالله السعيد',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                             ),
-                            Text(
+                            AppText(
                               'رقم الهوية: ${user?.nationalId ?? '1098765432'}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                              style: const TextStyle(color: Colors.white70, fontSize: 14),
                             ),
                           ],
                         ),
@@ -156,9 +157,9 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
               const SizedBox(height: 24),
 
               const Center(
-                child: Text(
+                child: AppText(
                   'الرقم المطلوب اختياره في تطبيق نفاذ:',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
               ),
 
@@ -182,7 +183,7 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                     ],
                   ),
                   child: Center(
-                    child: Text(
+                    child: AppText(
                       _randomNafathCode,
                       style: const TextStyle(
                         fontSize: 38,
@@ -204,9 +205,9 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                   children: [
                     const Icon(Icons.timer_outlined, size: 16, color: Colors.red),
                     const SizedBox(width: 4),
-                    Text(
+                    AppText(
                       'ينتهي الطلب خلال: $_formattedTime',
-                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
@@ -221,9 +222,9 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      const AppText(
                         'خطوات التوثيق والتحقق:',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       const SizedBox(height: 10),
                       _buildStepItem('1', 'افتح تطبيق نفاذ (Nafath) على هاتفك المحمول.'),
@@ -254,9 +255,9 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
                         children: const [
                           Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
                           SizedBox(width: 6),
-                          Text(
+                          AppText(
                             'تأكيد الموافقة في تطبيق نفاذ',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -266,7 +267,7 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
 
               TextButton(
                 onPressed: widget.onCancel,
-                child: const Text('إلغاء وإعادة المحاولة', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                child: const AppText('إلغاء وإعادة المحاولة', style: TextStyle(color: Colors.grey, fontSize: 14)),
               ),
             ],
           ),
@@ -284,16 +285,16 @@ class _NafathVerificationScreenState extends State<NafathVerificationScreen> {
           CircleAvatar(
             radius: 10,
             backgroundColor: AppTheme.nafathGreen.withAlpha(25),
-            child: Text(
+            child: AppText(
               stepNumber,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.nafathGreen),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.nafathGreen),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
+            child: AppText(
               text,
-              style: TextStyle(fontSize: 11, color: Colors.grey[800], height: 1.3),
+              style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.3),
             ),
           ),
         ],

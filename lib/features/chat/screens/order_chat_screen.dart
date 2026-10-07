@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/chat_model.dart';
 
@@ -78,8 +79,8 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('محادثة الطلب ${widget.referenceNumber}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('الفني: ${widget.technicianName}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            AppText('محادثة الطلب ${widget.referenceNumber}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            AppText('الفني: ${widget.technicianName}', style: const TextStyle(fontSize: 14, color: Colors.grey)),
           ],
         ),
       ),
@@ -93,9 +94,9 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                 Icon(Icons.lock_outline, size: 16, color: Colors.black87),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'هذه المحادثة مشفرة ومحمية بخصوصية الطلب وفق سياسة صلّح SALLIH',
-                    style: TextStyle(fontSize: 11, color: Colors.black87),
+                  child: AppText(
+                    'محادثة تجريبية محلية',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
                   ),
                 ),
               ],
@@ -125,7 +126,7 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        AppText(
                           msg.message,
                           style: TextStyle(
                             color: msg.isFromCustomer ? Colors.white : Colors.black87,
@@ -135,10 +136,10 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                         const SizedBox(height: 4),
                         Align(
                           alignment: Alignment.bottomLeft,
-                          child: Text(
+                          child: AppText(
                             '${msg.timestamp.hour}:${msg.timestamp.minute.toString().padLeft(2, '0')}',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               color: msg.isFromCustomer ? Colors.white70 : Colors.grey[600],
                             ),
                           ),
@@ -168,15 +169,15 @@ class _OrderChatScreenState extends State<OrderChatScreen> {
                   icon: const Icon(Icons.attach_file, color: AppTheme.primaryTeal),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم اختيار صورة لإرسالها بالمحادثة')),
+                      const SnackBar(content: AppText('إرفاق الصور غير متصل بعد.')),
                     );
                   },
                 ),
                 Expanded(
                   child: TextField(
                     controller: _msgController,
-                    decoration: const InputDecoration(
-                      hintText: 'اكتب رسالتك للفني...',
+                    decoration: InputDecoration(
+                      hintText: translate(context, 'اكتب رسالتك للفني...'),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: 12),
                     ),

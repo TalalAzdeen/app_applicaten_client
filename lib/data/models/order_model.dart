@@ -76,6 +76,15 @@ class OrderModel {
     this.hasWarranty = false,
   });
 
+  OrderModel copyWith({bool? isPaid}) => OrderModel(
+    id: id, referenceNumber: referenceNumber, service: service, address: address,
+    description: description, status: status, createdAt: createdAt,
+    scheduledFor: scheduledFor, organizationName: organizationName,
+    technicianName: technicianName, technicianPhone: technicianPhone,
+    currentQuote: currentQuote, isPaid: isPaid ?? this.isPaid, finalPrice: finalPrice,
+    rating: rating, reviewComment: reviewComment, hasWarranty: hasWarranty,
+  );
+
   bool get canTrackTechnician => status == OrderStatus.enRoute || status == OrderStatus.arrived;
   bool get canChat => status != OrderStatus.submitted && status != OrderStatus.cancelled;
 }

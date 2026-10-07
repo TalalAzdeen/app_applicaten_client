@@ -1,0 +1,41 @@
+name: Flutter platform validation
+# Run explicitly when the compatible Flutter SDK artifacts are available.
+on:
+  workflow_dispatch:
+    inputs:
+      flutter_version:
+        description: 'Flutter version with Dart >=3.13.5 matching this project'
+        required: true
+        default: '3.47.6'
+permissions:
+  contents: read
+jobs:
+  web-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release
+      - run: flutter build apk --debug
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ inputs.flutter_version }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign

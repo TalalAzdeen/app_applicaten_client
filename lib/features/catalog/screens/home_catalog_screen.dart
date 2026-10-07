@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/service_model.dart';
 import '../../../data/models/order_model.dart';
 import '../../../data/repositories/app_repository.dart';
+import '../../auth/services/auth_service.dart';
+import '../../orders/services/order_service.dart';
+import '../../../core/network/api_client.dart';
 
 class HomeCatalogScreen extends StatefulWidget {
   final Function(OrderModel) onOrderCreated;
@@ -15,13 +19,14 @@ class HomeCatalogScreen extends StatefulWidget {
 
 class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
   String selectedCategoryId = 'all';
+  bool _submitting = false;
   String searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final filteredServices = AppRepository.services.where((service) {
       final matchesCategory = selectedCategoryId == 'all' || service.categoryId == selectedCategoryId;
-      final matchesQuery = service.name.contains(searchQuery) || service.description.contains(searchQuery);
+      final matchesQuery = [service.name, service.description, translate(context, service.name), translate(context, service.description)].any((value) => value.toLowerCase().contains(searchQuery.toLowerCase()));
       return matchesCategory && matchesQuery;
     }).toList();
 
@@ -31,7 +36,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
           children: [
             Icon(Icons.handyman_rounded, color: AppTheme.primaryTeal, size: 20),
             SizedBox(width: 6),
-            Text(
+            AppText(
               'صلّح | SALLIH',
               style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryTeal, fontSize: 16),
             ),
@@ -42,7 +47,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
             icon: const Icon(Icons.notifications_none_rounded, size: 20),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('لا توجد إشعارات جديدة حالياً', style: TextStyle(fontSize: 11))),
+                const SnackBar(content: AppText('لا توجد إشعارات جديدة حالياً', style: TextStyle(fontSize: 14))),
               );
             },
           ),
@@ -77,7 +82,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text(
+                        AppText(
                           'أهلاً بك في منصة صلّح المعتمدة',
                           style: TextStyle(
                             color: Colors.white,
@@ -86,9 +91,9 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                           ),
                         ),
                         SizedBox(height: 4),
-                        Text(
+                        AppText(
                           'نضمن لك جودة التنفيذ وضمان الخدمة عبر فنيين ومؤسسات موثقة برقم نفاذ.',
-                          style: TextStyle(color: Colors.white70, fontSize: 10.5),
+                          style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                       ],
                     ),
@@ -109,11 +114,11 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
             SizedBox(
               height: 40,
               child: TextField(
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(fontSize: 14),
                 onChanged: (val) => setState(() => searchQuery = val),
                 decoration: InputDecoration(
-                  hintText: 'ابحث عن خدمة صيانة (سباكة، تكييف، كهرباء...)',
-                  hintStyle: const TextStyle(fontSize: 11),
+                  hintText: translate(context, 'ابحث عن خدمة صيانة (سباكة، تكييف، كهرباء...)'),
+                  hintStyle: const TextStyle(fontSize: 14),
                   prefixIcon: const Icon(Icons.search, size: 18, color: AppTheme.primaryTeal),
                   filled: true,
                   fillColor: const Color(0xFFF1F3F5),
@@ -129,7 +134,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
             const SizedBox(height: 16),
 
             // Categories horizontal list
-            const Text(
+            const AppText(
               'التصنيفات الرئيسية',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
@@ -160,13 +165,13 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                const AppText(
                   'الخدمات المتاحة للطلب',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
-                Text(
+                AppText(
                   '${filteredServices.length} خدمة',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
               ],
             ),
@@ -180,7 +185,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     children: const [
                       Icon(Icons.search_off, size: 36, color: Colors.grey),
                       SizedBox(height: 8),
-                      Text('لم نجد خدمات تطابق بحثك', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      AppText('لم نجد خدمات تطابق بحثك', style: TextStyle(color: Colors.grey, fontSize: 14)),
                     ],
                   ),
                 ),
@@ -210,10 +215,10 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
         showCheckmark: false,
         visualDensity: VisualDensity.compact,
         avatar: Icon(icon, size: 14, color: isSelected ? Colors.white : AppTheme.primaryTeal),
-        label: Text(
+        label: AppText(
           label,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 14,
             color: isSelected ? Colors.white : Colors.black87,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
@@ -255,9 +260,9 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(
+                  child: AppText(
                     service.name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
                 Container(
@@ -266,17 +271,17 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     color: badgeColor.withAlpha(25),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
+                  child: AppText(
                     badgeText,
-                    style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: badgeColor, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(
+            AppText(
               service.description,
-              style: TextStyle(color: Colors.grey[700], fontSize: 11),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
             const Divider(height: 18),
             Row(
@@ -285,12 +290,12 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('التكلفة المقدرة', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                    const AppText('التكلفة المقدرة', style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 2),
-                    Text(
+                    AppText(
                       service.formattedPrice,
                       style: const TextStyle(
-                        fontSize: 12.5,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryTeal,
                       ),
@@ -307,7 +312,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                   ),
                   onPressed: () => _showCreateOrderSheet(context, service),
                   icon: const Icon(Icons.add_task, size: 14),
-                  label: const Text('طلب الخدمة', style: TextStyle(fontSize: 11)),
+                  label: const AppText('طلب الخدمة', style: TextStyle(fontSize: 14)),
                 ),
               ],
             ),
@@ -319,7 +324,13 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
 
   void _showCreateOrderSheet(BuildContext context, ServiceItem service) {
     final descriptionController = TextEditingController();
-    CustomerAddress selectedAddress = AppRepository.addresses.first;
+    final live = AuthService.instance.authenticated;
+    final localAddresses = AppRepository.addresses.where((address) => address.id.startsWith('local_')).toList();
+    if (live && localAddresses.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('أضف عنوانًا حقيقيًا من صفحة العناوين قبل إنشاء الطلب.')));
+      return;
+    }
+    CustomerAddress selectedAddress = live ? localAddresses.first : AppRepository.addresses.first;
     bool isAutoMatching = true;
     bool isScheduled = false;
     DateTime scheduledDate = DateTime.now().add(const Duration(days: 1));
@@ -348,7 +359,7 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        AppText(
                           'طلب: ${service.name}',
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                         ),
@@ -362,15 +373,15 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     const SizedBox(height: 6),
 
                     // Address Selector
-                    const Text('العنوان وموقع الخدمة *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const AppText('العنوان وموقع الخدمة *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 6),
                     DropdownButtonFormField<CustomerAddress>(
                       value: selectedAddress,
-                      style: const TextStyle(fontSize: 11, color: Colors.black87),
-                      items: AppRepository.addresses.map((addr) {
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                      items: (live ? localAddresses : AppRepository.addresses).map((addr) {
                         return DropdownMenuItem(
                           value: addr,
-                          child: Text('${addr.label} (${addr.fullAddress})', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+                          child: AppText('${addr.label} (${addr.fullAddress})', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14)),
                         );
                       }).toList(),
                       onChanged: (val) {
@@ -384,29 +395,29 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     const SizedBox(height: 12),
 
                     // Problem description
-                    const Text('وصف تفصيلي للمشكلة *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const AppText('وصف تفصيلي للمشكلة *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: descriptionController,
-                      style: const TextStyle(fontSize: 11),
+                      style: const TextStyle(fontSize: 14),
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: 'اكتب تفاصيل لمساعدة الفني في التشخيص والمعدات المطلوبة...',
+                      decoration: InputDecoration(
+                        hintText: translate(context, 'اكتب تفاصيل لمساعدة الفني في التشخيص والمعدات المطلوبة...'),
                       ),
                     ),
                     const SizedBox(height: 12),
 
                     // Media Upload
-                    const Text('إرفاق صور/فيديو للمشكلة (اختياري)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                    const AppText('إرفاق صور/فيديو للمشكلة (اختياري)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 6),
                     OutlinedButton.icon(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تم اختيار صورة توضيحية للمشكلة', style: TextStyle(fontSize: 11))),
+                          const SnackBar(content: AppText('إرفاق الصور غير متصل بعد.', style: TextStyle(fontSize: 14))),
                         );
                       },
                       icon: const Icon(Icons.add_a_photo_outlined, size: 16),
-                      label: const Text('رفع صورة من المعرض أو الكاميرا', style: TextStyle(fontSize: 11)),
+                      label: const AppText('رفع صورة من المعرض أو الكاميرا', style: TextStyle(fontSize: 14)),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 38),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -417,8 +428,8 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     // Execution mode
                     SwitchListTile(
                       dense: true,
-                      title: const Text('المطابقة التلقائية مع أسرع مؤسسة متاحة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      subtitle: const Text('سيقوم النظام باختيار التغطية الأنسب لمنطقتك', style: TextStyle(fontSize: 10)),
+                      title: const AppText('المطابقة التلقائية مع أسرع مؤسسة متاحة', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      subtitle: const AppText('سيقوم النظام باختيار التغطية الأنسب لمنطقتك', style: TextStyle(fontSize: 12)),
                       value: isAutoMatching,
                       activeThumbColor: AppTheme.primaryTeal,
                       onChanged: (val) => setModalState(() => isAutoMatching = val),
@@ -427,11 +438,11 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                     // Schedule toggle
                     SwitchListTile(
                       dense: true,
-                      title: const Text('جدولة الطلب لموعد لاحق', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      subtitle: Text(isScheduled ? 'الموعد: غداً الساعة 10:00 صباحاً' : 'طلب فوري الآن', style: const TextStyle(fontSize: 10)),
+                      title: const AppText('جدولة الطلب لموعد لاحق', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      subtitle: AppText(isScheduled ? 'الموعد: غداً الساعة 10:00 صباحاً' : 'طلب فوري الآن', style: const TextStyle(fontSize: 12)),
                       value: isScheduled,
                       activeThumbColor: AppTheme.primaryTeal,
-                      onChanged: (val) => setModalState(() => isScheduled = val),
+                      onChanged: AuthService.instance.authenticated ? null : (val) => setModalState(() => isScheduled = val),
                     ),
 
                     const SizedBox(height: 16),
@@ -444,14 +455,31 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: () {
+                        onPressed: _submitting ? null : () async {
                           if (descriptionController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('الرجاء إدخال وصف المشكلة', style: TextStyle(fontSize: 11))),
+                              const SnackBar(content: AppText('الرجاء إدخال وصف المشكلة', style: TextStyle(fontSize: 14))),
                             );
                             return;
                           }
 
+                          if (AuthService.instance.authenticated) {
+                            setModalState(() => _submitting = true);
+                            try {
+                              final remoteOrder = await OrderService().create(service, selectedAddress, descriptionController.text.trim());
+                              if (!mounted || !sheetContext.mounted) return;
+                              widget.onOrderCreated(remoteOrder);
+                              Navigator.pop(sheetContext);
+                            } on ApiFailure catch (error) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: AppText(error.message)));
+                            } catch (_) {
+                              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('تعذر الاتصال. تحقق من الشبكة وأعد المحاولة.')));
+                            } finally {
+                              _submitting = false;
+                              if (sheetContext.mounted) setModalState(() {});
+                            }
+                            return;
+                          }
                           final newOrder = OrderModel(
                             id: 'o_${DateTime.now().millisecondsSinceEpoch}',
                             referenceNumber: 'SAL-${(1000 + AppRepository.sampleOrders.length + 1)}',
@@ -469,14 +497,14 @@ class _HomeCatalogScreenState extends State<HomeCatalogScreen> {
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('تم إنشاء الطلب بنجاح برقم ${newOrder.referenceNumber}', style: const TextStyle(fontSize: 11)),
+                              content: AppText('طلب تجريبي محلي: ${newOrder.referenceNumber}', style: const TextStyle(fontSize: 14)),
                               backgroundColor: Colors.green[800],
                             ),
                           );
                         },
-                        child: const Text(
+                        child: const AppText(
                           'تأكيد وإرسال الطلب',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),

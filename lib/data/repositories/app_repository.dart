@@ -74,7 +74,9 @@ class AppRepository {
     ),
   ];
 
-  static List<OrderModel> sampleOrders = [
+  static List<OrderModel> sampleOrders = createDemoOrders();
+
+  static List<OrderModel> createDemoOrders() => [
     OrderModel(
       id: 'o1',
       referenceNumber: 'SAL-9041',

@@ -1,206 +1,101 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
+import 'package:latlong2/latlong.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../data/models/service_model.dart';
 import '../../../data/repositories/app_repository.dart';
+import '../../location/screens/location_picker_screen.dart';
+import '../../location/services/address_store.dart';
 
 class WalletAddressesScreen extends StatefulWidget {
   const WalletAddressesScreen({super.key});
-
   @override
   State<WalletAddressesScreen> createState() => _WalletAddressesScreenState();
 }
 
 class _WalletAddressesScreenState extends State<WalletAddressesScreen> {
-  void _addNewAddress() {
-    final labelCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
+  bool _saving = false;
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: const Text('إضافة عنوان جديد (customer_addresses)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: labelCtrl,
-                style: const TextStyle(fontSize: 11),
-                decoration: const InputDecoration(labelText: 'اسم العنوان (مثلاً: المنزل، الاستراحة)'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: addressCtrl,
-                style: const TextStyle(fontSize: 11),
-                decoration: const InputDecoration(labelText: 'العنوان التفصيلي والحي'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('إلغاء', style: TextStyle(fontSize: 11)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryTeal),
-              onPressed: () {
-                if (labelCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
-                  setState(() {
-                    AppRepository.addresses.add(
-                      CustomerAddress(
-                        id: 'a_${DateTime.now().millisecondsSinceEpoch}',
-                        label: labelCtrl.text.trim(),
-                        fullAddress: addressCtrl.text.trim(),
-                        latitude: 24.71,
-                        longitude: 46.67,
-                      ),
-                    );
-                  });
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('تمت إضافة العنوان بنجاح وتحديده في الخريطة', style: TextStyle(fontSize: 11))),
-                  );
-                }
-              },
-              child: const Text('حفظ العنوان', style: TextStyle(color: Colors.white, fontSize: 11)),
-            ),
-          ],
-        );
-      },
-    );
+  Future<void> _addNewAddress() async {
+    final selected = await Navigator.push<SelectedLocation>(context,
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()));
+    if (!mounted || selected == null) return;
+    final label = TextEditingController();
+    final details = TextEditingController();
+    final form = GlobalKey<FormState>();
+    final address = await showDialog<CustomerAddress>(context: context, builder: (dialogContext) => AlertDialog(
+      title: const AppText('إضافة عنوان'),
+      content: SizedBox(width: 400, child: Form(key: form, child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextFormField(controller: label, maxLength: 100,
+          decoration: InputDecoration(labelText: translate(context, 'اسم العنوان')),
+          validator: (value) => value?.trim().isNotEmpty == true ? null : translate(context, 'هذا الحقل مطلوب')),
+        const SizedBox(height: 12),
+        TextFormField(controller: details, maxLength: 500, maxLines: 3,
+          decoration: InputDecoration(labelText: translate(context, 'العنوان التفصيلي والحي')),
+          validator: (value) => value?.trim().isNotEmpty == true ? null : translate(context, 'هذا الحقل مطلوب')),
+      ]))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(dialogContext), child: const AppText('إلغاء')),
+        FilledButton(onPressed: () {
+          if (form.currentState!.validate()) Navigator.pop(dialogContext, CustomerAddress(
+            id: 'local_${DateTime.now().microsecondsSinceEpoch}', label: label.text.trim(), fullAddress: details.text.trim(),
+            latitude: selected.coordinates.latitude, longitude: selected.coordinates.longitude,
+            accuracyMeters: selected.accuracyMeters,
+          ));
+        }, child: const AppText('حفظ العنوان')),
+      ],
+    ));
+    // The dialog's closing animation still uses the fields; dispose after it ends.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    label.dispose(); details.dispose();
+    if (!mounted || address == null) return;
+    setState(() => _saving = true);
+    try {
+      final local = AppRepository.addresses.where((entry) => entry.id.startsWith('local_')).toList()..add(address);
+      await AddressStore().save(local);
+      if (!mounted) return;
+      setState(() => AppRepository.addresses.add(address));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('تم حفظ العنوان على هذا الجهاز.')));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: AppText('تعذر حفظ العنوان. أعد المحاولة.')));
+    } finally { if (mounted) setState(() => _saving = false); }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('المحفظة والعناوين - SALLIH', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Compact Wallet Balance Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primaryTeal, AppTheme.secondaryTeal],
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                ),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withAlpha(20), blurRadius: 8, offset: const Offset(0, 3)),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('رصيد المحفظة (customer_wallets)', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                      Icon(Icons.account_balance_wallet, color: Colors.white, size: 20),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${AppRepository.walletBalance.toStringAsFixed(2)} ر.س',
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(color: Colors.white30, height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'مكافآت الكاش باك المكتسبة: ${AppRepository.cashbackEarned.toStringAsFixed(2)} ر.س',
-                        style: const TextStyle(color: Colors.amberAccent, fontSize: 10.5, fontWeight: FontWeight.bold),
-                      ),
-                      TextButton(
-                        style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('سيتم فتح شاشة شحن المحفظة', style: TextStyle(fontSize: 11))),
-                          );
-                        },
-                        child: const Text('شحن المحفظة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            // Addresses Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('عناويني المسجلة (PostGIS)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                TextButton.icon(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                  onPressed: _addNewAddress,
-                  icon: const Icon(Icons.add_location_alt, size: 16, color: AppTheme.primaryTeal),
-                  label: const Text('إضافة عنوان', style: TextStyle(color: AppTheme.primaryTeal, fontSize: 11)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-
-            ...AppRepository.addresses.map((addr) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  dense: true,
-                  leading: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: addr.isDefault ? AppTheme.primaryTeal : Colors.grey[300],
-                    child: Icon(
-                      Icons.location_on,
-                      size: 16,
-                      color: addr.isDefault ? Colors.white : Colors.grey[700],
-                    ),
-                  ),
-                  title: Text(addr.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  subtitle: Text(addr.fullAddress, style: const TextStyle(fontSize: 10.5)),
-                  trailing: addr.isDefault
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.teal[50], borderRadius: BorderRadius.circular(8)),
-                          child: const Text('الافتراضي', style: TextStyle(fontSize: 9.5, color: AppTheme.primaryTeal, fontWeight: FontWeight.bold)),
-                        )
-                      : null,
-                ),
-              );
-            }),
-
-            const SizedBox(height: 18),
-
-            // Recent Transactions
-            const Text('سجل المعاملات المالية والكاش باك', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildTransactionTile('كاش باك مكتسب - طلب SAL-7732', '+15.00 ر.س', 'اليوم 10:30 ص', Colors.green),
-            _buildTransactionTile('سداد طلب صيانة مكيفات SAL-9041', '-230.00 ر.س', 'أمس 04:15 م', Colors.black87),
-            _buildTransactionTile('شحن المحفظة إلكترونياً', '+300.00 ر.س', '12 أكتوبر', Colors.green),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionTile(String title, String amount, String date, Color color) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        dense: true,
-        title: Text(title, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-        subtitle: Text(date, style: TextStyle(fontSize: 9.5, color: Colors.grey[600])),
-        trailing: Text(amount, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const AppText('المحفظة والعناوين')),
+    body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760),
+      child: ListView(padding: const EdgeInsets.all(24), children: [
+        Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [Theme.of(context).colorScheme.primary, const Color(0xFF0A9396)]),
+          borderRadius: BorderRadius.circular(24)),
+          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.shield_outlined, color: Colors.white, size: 36),
+            SizedBox(height: 16),
+            AppText('الدفع مقابل الخدمة', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            SizedBox(height: 12),
+            AppText('ادفع من صفحة تفاصيل الطلب عبر مزود دفع آمن. شحن المحفظة غير متاح حاليًا.',
+              style: TextStyle(color: Colors.white, fontSize: 16)),
+          ])),
+        const SizedBox(height: 24),
+        Row(children: [
+          const Expanded(child: AppText('عناويني المسجلة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+          IconButton(onPressed: _saving ? null : _addNewAddress, tooltip: translate(context, 'إضافة عنوان'),
+            icon: const Icon(Icons.add_location_alt_outlined)),
+        ]),
+        const AppText('العناوين محفوظة على هذا الجهاز. العناوين الافتراضية بيانات توضيحية.'),
+        const SizedBox(height: 16),
+        if (_saving) const LinearProgressIndicator(),
+        ...AppRepository.addresses.map((address) => Card(margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(contentPadding: const EdgeInsets.all(16),
+            leading: Icon(Icons.location_on_outlined, color: Theme.of(context).colorScheme.primary),
+            title: AppText(address.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: AppText(address.fullAddress),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push<SelectedLocation>(context, MaterialPageRoute(builder: (_) =>
+              LocationPickerScreen(readOnly: true, initialPosition: LatLng(address.latitude, address.longitude)))),
+          ))),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(onPressed: _saving ? null : _addNewAddress, icon: const Icon(Icons.add), label: const AppText('إضافة عنوان')),
+      ]))),
+  );
 }
