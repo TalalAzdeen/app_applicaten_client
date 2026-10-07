@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/localization/localized_text.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/order_model.dart';
 import 'order_details_screen.dart';
@@ -39,14 +40,14 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('طلباتي - صلّح SALLIH', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        title: const AppText('طلباتي - صلّح SALLIH', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primaryTeal,
           unselectedLabelColor: Colors.grey,
           indicatorColor: AppTheme.primaryTeal,
-          labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: const TextStyle(fontSize: 14),
           tabs: [
             Tab(text: 'الكل (${widget.orders.length})'),
             Tab(text: 'الجارية (${activeOrders.length})'),
@@ -73,7 +74,7 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
           children: const [
             Icon(Icons.assignment_outlined, size: 48, color: Colors.grey),
             SizedBox(height: 10),
-            Text('لا توجد طلبات في هذه القائمة حالياً', style: TextStyle(color: Colors.grey, fontSize: 12)),
+            AppText('لا توجد طلبات في هذه القائمة حالياً', style: TextStyle(color: Colors.grey, fontSize: 14)),
           ],
         ),
       );
@@ -151,9 +152,9 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  AppText(
                     'رقم الطلب: ${order.referenceNumber}',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -161,24 +162,24 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
                       color: badgeColor.withAlpha(25),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
+                    child: AppText(
                       badgeText,
-                      style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 10.5),
+                      style: TextStyle(color: badgeColor, fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
-              Text(
+              AppText(
                 'الخدمة: ${order.service.name}',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
-              Text(
+              AppText(
                 order.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey[700], fontSize: 11),
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
               ),
               const Divider(height: 16),
               Row(
@@ -188,14 +189,14 @@ class _OrdersListScreenState extends State<OrdersListScreen> with SingleTickerPr
                     children: [
                       const Icon(Icons.location_on, size: 14, color: Colors.grey),
                       const SizedBox(width: 4),
-                      Text(order.address.label, style: const TextStyle(fontSize: 10.5, color: Colors.grey)),
+                      AppText(order.address.label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                   Row(
                     children: const [
-                      Text(
+                      AppText(
                         'التفاصيل والخيارات',
-                        style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 11),
+                        style: TextStyle(color: AppTheme.primaryTeal, fontWeight: FontWeight.bold, fontSize: 14),
                       ),
                       Icon(Icons.arrow_forward_ios, size: 10, color: AppTheme.primaryTeal),
                     ],

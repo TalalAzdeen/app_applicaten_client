@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local client configuration and server credentials
+/config/*.local.json
+.env
+.env.*
